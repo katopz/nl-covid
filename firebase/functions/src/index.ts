@@ -1,4 +1,8 @@
 import * as functions from 'firebase-functions'
+import * as bigquery from '@google-cloud/bigquery'
+import md5 from 'md5'
+
+import { bigQueryField } from './schema'
 
 export const REGION = 'asia-northeast1'
 export const onRequest = functions.region(REGION).https.onRequest
@@ -15,42 +19,53 @@ export const pullData = onRequest((request, response) => {
 })
 
 export const _pullData = async () => {
-  const { BigQuery } = require('@google-cloud/bigquery')
-  const { md5 } = require('md5')
-  const bq = new BigQuery()
+  const bq = new bigquery.BigQuery()
 
   const createTable = async (datasetId: string, tableId: string) => {
     // Exist?
-    const [tables] = await bq.dataset(datasetId).getTables()
-    let isExist = false
-    tables.forEach((table: any) => {
-      isExist = isExist || tableId === table.id
-    })
+    const [tableExists] = await bq
+      .dataset(datasetId)
+      .table(tableId)
+      .exists()
 
-    if (isExist) {
+    if (tableExists) {
       console.log(`Table ${tableId} already existed.`)
       return
     }
 
     const schema: any = {
-      trend: 'date:date, deaths:integer, confirmed:integer, recovered:integer',
-      world:
-        'name:string, alpha2:string, alpha3:string, numeric:string, deaths:integer, confirmed:integer, recovered:integer, travel:string',
+      trend: [
+        bigQueryField('date', 'DATE', 'REQUIRED'),
+        bigQueryField('deaths', 'INTEGER', 'NULLABLE'),
+        bigQueryField('confirmed', 'INTEGER', 'NULLABLE'),
+        bigQueryField('recovered', 'INTEGER', 'NULLABLE')
+      ],
+      world: [
+        bigQueryField('name', 'STRING', 'REQUIRED'),
+        bigQueryField('alpha2', 'STRING', 'NULLABLE'),
+        bigQueryField('alpha3', 'STRING', 'NULLABLE'),
+        bigQueryField('numeric', 'STRING', 'NULLABLE'),
+        bigQueryField('deaths', 'INTEGER', 'NULLABLE'),
+        bigQueryField('confirmed', 'INTEGER', 'NULLABLE'),
+        bigQueryField('recovered', 'INTEGER', 'NULLABLE'),
+        bigQueryField('travel', 'STRING', 'NULLABLE')
+      ],
       cases: [
-        { name: 'id', type: 'STRING', mode: 'NULLABLE' },
-        { name: 'number', type: 'INTEGER', mode: 'NULLABLE' },
-        { name: 'age', type: 'INTEGER', mode: 'NULLABLE' },
-        { name: 'gender', type: 'STRING', mode: 'NULLABLE' },
-        { name: 'job', type: 'STRING', mode: 'NULLABLE' },
-        { name: 'origin', type: 'STRING', mode: 'NULLABLE' },
-        { name: 'type', type: 'STRING', mode: 'NULLABLE' },
-        { name: 'meta', type: 'STRING', mode: 'NULLABLE' },
-        { name: 'status', type: 'STRING', mode: 'NULLABLE' },
-        { name: 'statementDate', type: 'DATE', mode: 'NULLABLE' },
-        { name: 'recoveredDate', type: 'DATE', mode: 'NULLABLE' },
-        { name: 'nationality', type: 'STRING', mode: 'NULLABLE' },
-        { name: 'detectedAt', type: 'STRING', mode: 'NULLABLE' },
-        { name: 'treatAt', type: 'STRING', mode: 'NULLABLE' },
+        bigQueryField('id', 'STRING', 'REQUIRED'),
+        bigQueryField('number', 'INTEGER', 'NULLABLE'),
+        bigQueryField('age', 'INTEGER', 'NULLABLE'),
+        bigQueryField('gender', 'STRING', 'NULLABLE'),
+        bigQueryField('job', 'STRING', 'NULLABLE'),
+        bigQueryField('origin', 'STRING', 'NULLABLE'),
+        bigQueryField('type', 'STRING', 'NULLABLE'),
+        bigQueryField('meta', 'STRING', 'NULLABLE'),
+        bigQueryField('status', 'STRING', 'NULLABLE'),
+        bigQueryField('statementDate', 'DATE', 'NULLABLE'),
+        bigQueryField('recoveredDate', 'DATE', 'NULLABLE'),
+        bigQueryField('nationality', 'STRING', 'NULLABLE'),
+        bigQueryField('detectedAt', 'STRING', 'NULLABLE'),
+        bigQueryField('treatAt', 'STRING', 'NULLABLE'),
+        ,
         {
           name: 'references',
           type: 'RECORD',
@@ -75,38 +90,47 @@ export const _pullData = async () => {
   }
 
   // Insert with deduplicate by `insertId`
-  const insertRowsAsStream = async (datasetId: string, tableId: string, json: any) => {
+  const insertRowsAsStreamWithInsertId = async (datasetId: string, tableId: string, json: any) => {
     let _rows: any = {
       trend: () =>
         Object.keys(json).map((e: string) => ({
-          ...json[e],
-          date: bq.date(e),
           // Use key "date" as insertId
-          insertId: md5(e)
+          insertId: md5(e),
+          json: {
+            ...json[e],
+            date: e
+          }
         })),
       world: () =>
         json.statistics.map((e: any) => ({
           // Use value "name" as insertId
-          insertId: md5(e.name)
+          insertId: md5(e.name),
+          json: e
         })),
       cases: () =>
         json.map((e: any) => ({
-          ...e,
-          statementDate: e.statementDate ? bq.date(e.statementDate) : null,
-          recoveredDate: e.recoveredDate ? bq.date(e.recoveredDate) : null,
-          references: e['references'].map((ee: string) => ({ url: ee })),
           // Use "id" as insertId
-          insertId: e.id
+          insertId: e.id,
+          json: {
+            ...e,
+            references: e['references'].map((ee: string) => ({ url: ee }))
+          }
         }))
     }
 
-    const rows = _rows[tableId]()
+    let rows = _rows[tableId]()
+
+    // Use raw because of `insertId`
+    const options = {
+      skipInvalidRows: false,
+      raw: true
+    }
 
     // Insert data into a table
     await bq
       .dataset(datasetId)
       .table(tableId)
-      .insert(rows)
+      .insert(rows, options)
 
     console.log(`Inserted ${rows.length} rows`)
 
@@ -123,7 +147,7 @@ export const _pullData = async () => {
 
     // Cool
     await createTable(datasetId, tableId)
-    await insertRowsAsStream(datasetId, tableId, json)
+    await insertRowsAsStreamWithInsertId(datasetId, tableId, json)
   }
 
   // Go!
@@ -133,4 +157,6 @@ export const _pullData = async () => {
   await start('cases')
 }
 
-_pullData()
+_pullData().catch(error => {
+  console.error(JSON.stringify(error.response))
+})
