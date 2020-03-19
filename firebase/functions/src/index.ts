@@ -63,9 +63,9 @@ export const _pullData = async () => {
         bigQueryField('statementDate', 'DATE', 'NULLABLE'),
         bigQueryField('recoveredDate', 'DATE', 'NULLABLE'),
         bigQueryField('nationality', 'STRING', 'NULLABLE'),
+        bigQueryField('nationalityAlpha2', 'STRING', 'NULLABLE'),
         bigQueryField('detectedAt', 'STRING', 'NULLABLE'),
         bigQueryField('treatAt', 'STRING', 'NULLABLE'),
-        ,
         {
           name: 'references',
           type: 'RECORD',
@@ -113,7 +113,7 @@ export const _pullData = async () => {
           insertId: e.id,
           json: {
             ...e,
-            references: e['references'].map((ee: string) => ({ url: ee }))
+            references: e.references ? e.references.map((ee: string) => ({ url: ee })) : []
           }
         }))
     }
@@ -146,7 +146,7 @@ export const _pullData = async () => {
     const json = await getJSON(COVID_URL)
 
     // Cool
-    await createTable(datasetId, tableId)
+    await createTable(datasetId, tableId).catch(console.error)
     await insertRowsAsStreamWithInsertId(datasetId, tableId, json)
   }
 
@@ -157,6 +157,4 @@ export const _pullData = async () => {
   await start('cases')
 }
 
-_pullData().catch(error => {
-  console.error(JSON.stringify(error.response))
-})
+_pullData().catch(error => console.error(JSON.stringify(error.response)))
