@@ -28,8 +28,16 @@ ORDER BY
 
 ```
 cd firebase/functions
+# See : https://cloud.google.com/docs/authentication/getting-started
+export GOOGLE_APPLICATION_CREDENTIALS=.credential.json
 npm run dev
 ```
+
+## TODO
+
+- [ ] Present to `Data Studio`
+- [ ] Made prediction with `BigQuery ML`
+- [ ] Auto fetch data with `Cloud Schedule`
 
 ## Credit
 

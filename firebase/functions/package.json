@@ -9,7 +9,7 @@
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
     "kill": "lsof -t -i tcp:8080 | xargs kill",
-    "dev": "export GOOGLE_APPLICATION_CREDENTIALS=.credential.json && npm run kill && tsc --resolveJsonModule -w & firebase serve --only functions"
+    "dev": "npm run kill && tsc --resolveJsonModule -w & firebase serve --only functions"
   },
   "engines": {
     "node": "8"
