@@ -2,9 +2,10 @@ import * as functions from 'firebase-functions'
 import * as bigquery from '@google-cloud/bigquery'
 import md5 from 'md5'
 
-import { schema } from './schema'
+import { schema, TREND_FIELDS, WORLD_FIELDS, CASES_FIELDS } from './schema'
 
 export const REGION = 'asia-northeast1'
+export const BQ_LOCATION = 'asia-southeast1'
 export const onRequest = functions.region(REGION).https.onRequest
 
 export const pullData = onRequest((request, response) => {
@@ -21,7 +22,7 @@ export const pullData = onRequest((request, response) => {
 export const _pullData = async () => {
   const bq = new bigquery.BigQuery()
 
-  const createTable = async (datasetId: string, tableId: string) => {
+  const isTableExist = async (datasetId: string, tableId: string) => {
     // Exist?
     const [tableExists] = await bq
       .dataset(datasetId)
@@ -31,7 +32,38 @@ export const _pullData = async () => {
     if (tableExists) {
       console.log(`Table ${tableId} already existed.`)
 
-      return
+      return true
+    }
+
+    return false
+  }
+
+  const createTodayTable = async (datasetId: string, tableId: string) => {
+    // Daily
+    let today_tableId = `${tableId}_${new Date()
+      .toISOString()
+      .split('T')[0]
+      .split('-')
+      .join('')}`
+
+    if (isTableExist(datasetId, tableId)) {
+      // Delete
+      await bq
+        .dataset(datasetId)
+        .table(tableId)
+        .delete()
+
+      console.log(`Table ${tableId} has been delete.`)
+      console.log(`Please try again in few seconds.`)
+    }
+
+    return createTable(datasetId, today_tableId)
+  }
+
+  const createTable = async (datasetId: string, tableId: string) => {
+    if (isTableExist(datasetId, tableId)) {
+      console.log(`Table ${tableId} already exists.`)
+      return { tableId: null } as any
     }
 
     const options = { schema: schema[tableId] }
@@ -40,11 +72,15 @@ export const _pullData = async () => {
     await bq.dataset(datasetId).createTable(tableId, options)
 
     console.log(`Table ${tableId} created.`)
+
+    return { tableId }
   }
 
   // Insert with deduplicate by `insertId`
   const insertRowsAsStreamWithInsertId = async (datasetId: string, tableId: string, json: any) => {
-    console.log(`Insert : ${tableId}`)
+    console.log(`Insert tableId: ${tableId}`)
+    const type = tableId.split('_')[0]
+    console.log(`Insert type: ${type}`)
     let _rows: any = {
       trend: () =>
         Object.keys(json).map((e: string) => ({
@@ -57,6 +93,7 @@ export const _pullData = async () => {
         })),
       world: () =>
         json.statistics.map((e: any) => {
+          // How about us now T-T
           if (e.name === 'Thailand') console.log(e)
           return {
             // Use value "name" as insertId
@@ -75,7 +112,7 @@ export const _pullData = async () => {
         }))
     }
 
-    let rows = _rows[tableId]()
+    let rows = _rows[type]()
 
     // Use raw because of `insertId`
     const options = {
@@ -94,6 +131,70 @@ export const _pullData = async () => {
     return
   }
 
+  const getUniqueKey = (type: string) => {
+    return ({ trend: 'date', world: 'name', cases: 'id' } as any)[type]
+  }
+
+  const getUpdateStatement = (type: string) => {
+    console.log(`Will update ${type}.`)
+
+    return ({
+      trend: TREND_FIELDS.map(e => `${e}=S.${e}`),
+      world: WORLD_FIELDS.map(e => `${e}=S.${e}`),
+      cases: CASES_FIELDS.map(e => `${e}=S.${e}`)
+    } as any)[type]
+  }
+
+  const getInsertStatement = (type: string) => {
+    console.log(`Will insert ${type}.`)
+
+    const getINSERT = (target: string[]) => `INSERT (${target.join(',')})`
+    const getVALUE = (target: string[]) => 'VALUES (' + target.map(e => `S.${e}`).join(',') + ')'
+
+    return ({
+      trend: getINSERT(TREND_FIELDS) + ' ' + getVALUE(TREND_FIELDS),
+      world: getINSERT(WORLD_FIELDS) + ' ' + getVALUE(WORLD_FIELDS),
+      cases: getINSERT(CASES_FIELDS) + ' ' + getVALUE(CASES_FIELDS)
+    } as any)[type]
+  }
+
+  const upsertTable = async (datasetId: string, source_tableId: string, target_tableId: string) => {
+    console.log(`Merge : ${source_tableId},  ${target_tableId}`)
+
+    // Params
+    const type = target_tableId
+    const KEY = getUniqueKey(type)
+
+    // Options
+    const query = `
+    MERGE nl-covid.${datasetId}.${target_tableId} T
+    USING nl-covid.${datasetId}.${source_tableId} S
+    ON T.${KEY} = S.${KEY}
+    WHEN MATCHED THEN
+      UPDATE SET ${getUpdateStatement(type)}
+    WHEN NOT MATCHED THEN
+      ${getInsertStatement(type)}
+    `
+    const location = BQ_LOCATION
+
+    console.log(query)
+
+    // Run the query as a job
+    const [job] = await bq.createQueryJob({
+      query,
+      location
+    })
+
+    console.log(`Job ${job.id} started.`)
+
+    // Wait for the query to finish
+    const result = await job.getQueryResults()
+
+    // Print the results
+    // console.log(`Upserted ${rows.length} rows`)
+    console.log(result)
+  }
+
   const start = async (tableId: string) => {
     // Fixed
     const datasetId = 'covid19'
@@ -103,8 +204,15 @@ export const _pullData = async () => {
     const json = await getJSON(COVID_URL)
 
     // Cool
-    await createTable(datasetId, tableId).catch(console.error)
-    await insertRowsAsStreamWithInsertId(datasetId, tableId, json)
+    const { tableId: old_tableId } = await createTable(datasetId, tableId).catch(console.error)
+    old_tableId && console.log(`Created : ${old_tableId}`)
+
+    const { tableId: today_tableId } = await createTodayTable(datasetId, tableId).catch(console.error)
+    // test // const today_tableId = `${tableId}_20200321`
+    if (today_tableId) {
+      await insertRowsAsStreamWithInsertId(datasetId, today_tableId, json).catch(console.error)
+      await upsertTable(datasetId, today_tableId, tableId).catch(console.error)
+    }
   }
 
   // Go!

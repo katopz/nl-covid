@@ -34,7 +34,7 @@ npm run dev
 
 ## TODO
 
-- [ ] Merge data instead of manually delete.
+- [x] Merge data instead of manually delete.
 - [ ] Present to `Data Studio`.
 - [ ] Made prediction with `BigQuery ML`.
 - [ ] Auto fetch data with `Cloud Schedule`.

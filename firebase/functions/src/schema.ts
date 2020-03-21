@@ -36,6 +36,27 @@ export const bigQueryField = (
   type
 })
 
+export const TREND_FIELDS = ['date', 'deaths', 'confirmed', 'recovered']
+export const WORLD_FIELDS = ['name', 'alpha2', 'alpha3', 'numeric', 'deaths', 'confirmed', 'recovered', 'travel']
+export const CASES_FIELDS = [
+  'id',
+  'number',
+  'age',
+  'gender',
+  'job',
+  'origin',
+  'type',
+  'meta',
+  'status',
+  'statementDate',
+  'recoveredDate',
+  'nationality',
+  'nationalityAlpha2',
+  'detectedAt',
+  'treatAt',
+  'references'
+]
+
 export const schema: any = {
   trend: [
     bigQueryField('date', 'DATE', 'REQUIRED'),
