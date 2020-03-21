@@ -2,6 +2,8 @@ This project aim to present COVID-19 prediction from https://covid19.workpointne
 
 ### DEV
 
+> Get your own `.credential.json` here : https://cloud.google.com/docs/authentication/getting-started
+
 ```
 export GOOGLE_APPLICATION_CREDENTIALS=.credential.json
 npm run dev
