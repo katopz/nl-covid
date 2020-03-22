@@ -46,27 +46,35 @@ export const _pullData = async () => {
       .split('-')
       .join('')}`
 
-    if (isTableExist(datasetId, tableId)) {
+    if (await isTableExist(datasetId, today_tableId)) {
+      console.log(`Delete ${datasetId}.${today_tableId}...`)
       // Delete
       await bq
         .dataset(datasetId)
-        .table(tableId)
+        .table(today_tableId)
         .delete()
 
-      console.log(`Table ${tableId} has been delete.`)
+      console.log(`Table ${today_tableId} has been delete.`)
       console.log(`Please try again in few seconds.`)
+      return { today_tableId: null }
     }
 
-    return createTable(datasetId, today_tableId)
+    const { tableId: _tableId } = await createTable(datasetId, today_tableId, tableId)
+    if (!_tableId) return { today_tableId: null } as any
+
+    return { today_tableId: _tableId }
   }
 
-  const createTable = async (datasetId: string, tableId: string) => {
-    if (isTableExist(datasetId, tableId)) {
+  const createTable = async (datasetId: string, tableId: string, type: string) => {
+    if (await isTableExist(datasetId, tableId)) {
       console.log(`Table ${tableId} already exists.`)
       return { tableId: null } as any
     }
 
-    const options = { schema: schema[tableId] }
+    console.log('createTable:', tableId)
+    console.log('type:', type)
+
+    const options = { schema: schema[type] }
 
     // Create a new table in the dataset
     await bq.dataset(datasetId).createTable(tableId, options)
@@ -196,18 +204,20 @@ export const _pullData = async () => {
   }
 
   const start = async (tableId: string) => {
-    // Fixed
+    console.log(`start : ${tableId}`)
+
+    // Fetch
     const datasetId = 'covid19'
-
+    const COVID_URL = `https://covid19-cdn.workpointnews.com/api/${tableId}.json`
     const { getJSON } = require('@rabbotio/fetcher')
-    const COVID_URL = `https://covid19.workpointnews.com/api/${tableId}`
-    const json = await getJSON(COVID_URL)
+    const json = await getJSON(COVID_URL).catch(console.error)
+    if (!json) throw new Error('No data')
 
-    // Cool
-    const { tableId: old_tableId } = await createTable(datasetId, tableId).catch(console.error)
+    // Create table if not exists
+    const { tableId: old_tableId } = await createTable(datasetId, tableId, tableId).catch(console.error)
     old_tableId && console.log(`Created : ${old_tableId}`)
 
-    const { tableId: today_tableId } = await createTodayTable(datasetId, tableId).catch(console.error)
+    const { today_tableId } = await createTodayTable(datasetId, tableId).catch(console.error)
     // test // const today_tableId = `${tableId}_20200321`
     if (today_tableId) {
       await insertRowsAsStreamWithInsertId(datasetId, today_tableId, json).catch(console.error)
@@ -222,4 +232,4 @@ export const _pullData = async () => {
   await start('cases')
 }
 
-_pullData().catch(error => console.error(JSON.stringify(error.response)))
+_pullData().catch(error => console.error(error.response ? JSON.stringify(error.response) : error))
