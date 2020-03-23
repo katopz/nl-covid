@@ -47,16 +47,11 @@ export const _pullData = async () => {
       .join('')}`
 
     if (await isTableExist(datasetId, today_tableId)) {
-      console.log(`Delete ${datasetId}.${today_tableId}...`)
-      // Delete
-      await bq
-        .dataset(datasetId)
-        .table(today_tableId)
-        .delete()
+      console.error(`------------------------------------------`)
+      console.error(`Please empty ${datasetId}.${today_tableId}`)
+      console.error(`------------------------------------------`)
 
-      console.log(`Table ${today_tableId} has been delete.`)
-      console.log(`Please try again in few seconds.`)
-      return { today_tableId: null }
+      throw new Error(`${datasetId}.${today_tableId} must be empty`)
     }
 
     const { tableId: _tableId } = await createTable(datasetId, today_tableId, tableId)
@@ -67,7 +62,7 @@ export const _pullData = async () => {
 
   const createTable = async (datasetId: string, tableId: string, type: string) => {
     if (await isTableExist(datasetId, tableId)) {
-      console.log(`Table ${tableId} already exists.`)
+      console.log(`Table ${tableId} already existed.`)
       return { tableId: null } as any
     }
 
@@ -220,7 +215,11 @@ export const _pullData = async () => {
     const { today_tableId } = await createTodayTable(datasetId, tableId).catch(console.error)
     // test // const today_tableId = `${tableId}_20200321`
     if (today_tableId) {
-      await insertRowsAsStreamWithInsertId(datasetId, today_tableId, json).catch(console.error)
+      await insertRowsAsStreamWithInsertId(datasetId, today_tableId, json).catch(error => {
+        // Break if error
+        console.error(error)
+        throw error
+      })
       await upsertTable(datasetId, today_tableId, tableId).catch(console.error)
     }
   }
