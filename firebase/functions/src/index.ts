@@ -1,3 +1,3 @@
-import { pullData as _pullData } from './workpoint'
+import { pullData as _pullData } from './workpoint/workpoint'
 
 export const pullData = _pullData
