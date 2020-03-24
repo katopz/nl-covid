@@ -152,8 +152,8 @@ _ingestAll()
 
 export const ingestAll = functions
   .region(REGION)
-  .pubsub.schedule('every 1 hours')
+  .pubsub.schedule('every 24 hours')
   .onRun(async () => {
-    console.log('This will be run every hours!')
+    console.log('This will be run every 24 hours!')
     return _ingestAll()
   })
