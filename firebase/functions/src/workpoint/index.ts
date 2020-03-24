@@ -231,4 +231,4 @@ export const _pullData = async () => {
   await start('cases')
 }
 
-_pullData().catch(error => console.error(error.response ? JSON.stringify(error.response) : error))
+// _pullData().catch(error => console.error(error.response ? JSON.stringify(error.response) : error))
