@@ -26,10 +26,9 @@ const ingest = async (url: string) => {
     .collection('covid19')
     .doc(md5(url))
     .get()
-  console.log(' ^ get_res:', get_res.data())
+
   const get_resData = get_res.data() as any
   const etag = get_resData?.etag
-  console.log(' ^ etag:', etag)
 
   // --------------------------------------------------------------------------------------------
 
@@ -37,7 +36,6 @@ const ingest = async (url: string) => {
   // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag
   let options = etag ? { headers: { 'If-None-Match': etag } } : {}
   const fetch_res = await fetch(url, options)
-  console.log(' ^ fetch_res:', fetch_res.status)
 
   // Not modified
   if (fetch_res.status === 304) {
@@ -46,18 +44,17 @@ const ingest = async (url: string) => {
   }
 
   const new_etag = fetch_res.headers.get('ETag')
-  console.log(' ^ new_etag:', new_etag)
+  // console.log(' ^ new_etag:', new_etag)
 
   // --------------------------------------------------------------------------------------------
 
   // Cloud Function → Firestore : Save url/e-tag to Firestore
   // https://firebase.google.com/docs/firestore/manage-data/add-data
-  const set_res = (await admin
+  await admin
     .firestore()
     .collection('covid19')
     .doc(md5(url))
-    .set({ etag: new_etag })) as any
-  console.log(' ^ set_res:', set_res)
+    .set({ etag: new_etag })
 
   // --------------------------------------------------------------------------------------------
 
@@ -80,7 +77,6 @@ const ingest = async (url: string) => {
   const filetype = 'csv'
   const full_filename = `${daily_filename}.${filetype}`
 
-  console.log(' ^ daily_filename:', daily_filename)
   console.log(' ^ full_filename:', full_filename)
 
   const bucket = admin.storage().bucket()
@@ -102,8 +98,7 @@ const ingest = async (url: string) => {
       blobStream.end(buffer)
     })
 
-  const res_write = await write()
-  console.log(' ^ res_write:', res_write)
+  await write()
 
   // --------------------------------------------------------------------------------------------
 
@@ -132,7 +127,7 @@ const ingest = async (url: string) => {
     .load(bucket.file(full_filename), metadata)
 
   // load() waits for the job to finish
-  console.log(`Job ${job.id} completed.`)
+  // console.log(`Job ${job.id} completed.`)
 
   // Check the job's status for errors
   const errors = job.status?.errors
@@ -141,8 +136,11 @@ const ingest = async (url: string) => {
 
 // Manually call
 const _ingestAll = async () => {
+  console.log(' * Ingest:', LAB_URL)
   await ingest(LAB_URL)
+  console.log(' * Ingest:', THSTAT_URL)
   await ingest(THSTAT_URL)
+  console.log(' ! Done TCGD')
 }
 
 _ingestAll()

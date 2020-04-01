@@ -30,7 +30,7 @@ export const _pullData = async () => {
       .exists()
 
     if (tableExists) {
-      console.log(`Table ${tableId} already existed.`)
+      // console.log(`Table ${tableId} already existed.`)
 
       return true
     }
@@ -62,28 +62,28 @@ export const _pullData = async () => {
 
   const createTable = async (datasetId: string, tableId: string, type: string) => {
     if (await isTableExist(datasetId, tableId)) {
-      console.log(`Table ${tableId} already existed.`)
+      // console.log(`Table ${tableId} already existed.`)
       return { tableId: null } as any
     }
 
-    console.log('createTable:', tableId)
-    console.log('type:', type)
+    // console.log('createTable:', tableId)
+    // console.log('type:', type)
 
     const options = { schema: schema[type] }
 
     // Create a new table in the dataset
     await bq.dataset(datasetId).createTable(tableId, options)
 
-    console.log(`Table ${tableId} created.`)
+    // console.log(`Table ${tableId} created.`)
 
     return { tableId }
   }
 
   // Insert with deduplicate by `insertId`
   const insertRowsAsStreamWithInsertId = async (datasetId: string, tableId: string, json: any) => {
-    console.log(`Insert tableId: ${tableId}`)
+    console.log(` * Insert tableId: ${tableId}`)
     const type = tableId.split('_')[0]
-    console.log(`Insert type: ${type}`)
+    // console.log(`Insert type: ${type}`)
     let _rows: any = {
       trend: () =>
         Object.keys(json).map((e: string) => ({
@@ -129,7 +129,7 @@ export const _pullData = async () => {
       .table(tableId)
       .insert(rows, options)
 
-    console.log(`Inserted ${rows.length} rows`)
+    console.log(` ^ Inserted ${rows.length} rows`)
 
     return
   }
@@ -139,7 +139,7 @@ export const _pullData = async () => {
   }
 
   const getUpdateStatement = (type: string) => {
-    console.log(`Will update ${type}.`)
+    // console.log(`Will update ${type}.`)
 
     return ({
       trend: TREND_FIELDS.map(e => `${e}=S.${e}`),
@@ -149,7 +149,7 @@ export const _pullData = async () => {
   }
 
   const getInsertStatement = (type: string) => {
-    console.log(`Will insert ${type}.`)
+    // console.log(`Will insert ${type}.`)
 
     const getINSERT = (target: string[]) => `INSERT (${target.join(',')})`
     const getVALUE = (target: string[]) => 'VALUES (' + target.map(e => `S.${e}`).join(',') + ')'
@@ -162,7 +162,7 @@ export const _pullData = async () => {
   }
 
   const upsertTable = async (datasetId: string, source_tableId: string, target_tableId: string) => {
-    console.log(`Merge : ${source_tableId},  ${target_tableId}`)
+    console.log(` * Merge : ${source_tableId},  ${target_tableId}`)
 
     // Params
     const type = target_tableId
@@ -180,7 +180,7 @@ export const _pullData = async () => {
     `
     const location = BQ_LOCATION
 
-    console.log(query)
+    // console.log(query)
 
     // Run the query as a job
     const [job] = await bq.createQueryJob({
@@ -188,18 +188,15 @@ export const _pullData = async () => {
       location
     })
 
-    console.log(`Job ${job.id} started.`)
+    //console.log(`Job ${job.id} started.`)
 
     // Wait for the query to finish
-    const result = await job.getQueryResults()
-
-    // Print the results
-    // console.log(`Upserted ${rows.length} rows`)
-    console.log(result)
+    await job.getQueryResults()
   }
 
   const start = async (tableId: string) => {
-    console.log(`start : ${tableId}`)
+    console.log(`---------------------`)
+    console.log(` * Start : ${tableId}`)
 
     // Fetch
     const datasetId = 'covid19'
@@ -210,7 +207,7 @@ export const _pullData = async () => {
 
     // Create table if not exists
     const { tableId: old_tableId } = await createTable(datasetId, tableId, tableId).catch(console.error)
-    old_tableId && console.log(`Created : ${old_tableId}`)
+    old_tableId && console.log(` * Created : ${old_tableId}`)
 
     const { today_tableId } = await createTodayTable(datasetId, tableId).catch(console.error)
     // test // const today_tableId = `${tableId}_20200321`
@@ -226,9 +223,11 @@ export const _pullData = async () => {
 
   // Go!
   // trend, world, cases
+  console.log(' * Ingest: workpoint')
   await start('trend')
   await start('world')
   await start('cases')
+  console.log(' ! Done : workpoint')
 }
 
 _pullData().catch(error => console.error(error.response ? JSON.stringify(error.response) : error))
