@@ -9,3 +9,7 @@ cd firebase/functions
 export GOOGLE_APPLICATION_CREDENTIALS=.credential.json
 npm run dev
 ```
+
+### BigQuery
+
+https://console.cloud.google.com/bigquery?project=nl-covid&folder=&organizationId=&p=nl-covid&page=project
