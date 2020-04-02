@@ -39,7 +39,7 @@ const ingest = async (url: string) => {
 
   // Not modified
   if (fetch_res.status === 304) {
-    console.log('Not modified:', url)
+    console.log(' ! Not modified:', url)
     return
   }
 
