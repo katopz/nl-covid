@@ -8,17 +8,6 @@ export const REGION = 'asia-northeast1'
 export const BQ_LOCATION = 'asia-southeast1'
 export const onRequest = functions.region(REGION).https.onRequest
 
-export const pullData = onRequest((request, response) => {
-  _pullData()
-    .then(() => {
-      response.status(200).send('OK')
-    })
-    .catch((error: Error) => {
-      console.error(error)
-      response.status(500)
-    })
-})
-
 export const _pullData = async () => {
   const bq = new bigquery.BigQuery()
 
@@ -40,7 +29,7 @@ export const _pullData = async () => {
 
   const createTodayTable = async (datasetId: string, tableId: string) => {
     // Daily
-    let today_tableId = `${tableId}_${new Date()
+    const today_tableId = `${tableId}_${new Date()
       .toISOString()
       .split('T')[0]
       .split('-')
@@ -84,7 +73,7 @@ export const _pullData = async () => {
     console.log(` * Insert tableId: ${tableId}`)
     const type = tableId.split('_')[0]
     // console.log(`Insert type: ${type}`)
-    let _rows: any = {
+    const _rows: any = {
       trend: () =>
         Object.keys(json).map((e: string) => ({
           // Use key "date" as insertId
@@ -115,7 +104,7 @@ export const _pullData = async () => {
         }))
     }
 
-    let rows = _rows[type]()
+    const rows = _rows[type]()
 
     // Use raw because of `insertId`
     const options = {
@@ -229,5 +218,3 @@ export const _pullData = async () => {
   await start('cases')
   console.log(' ! Done : workpoint')
 }
-
-_pullData().catch(error => console.error(error.response ? JSON.stringify(error.response) : error))

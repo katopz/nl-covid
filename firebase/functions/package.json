@@ -6,7 +6,7 @@
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
-    "deploy": "firebase deploy --only functions",
+    "deploy": "npm run build && firebase deploy --only functions",
     "logs": "firebase functions:log",
     "kill": "lsof -t -i tcp:8080 | xargs kill",
     "dev": "npm run kill && tsc --resolveJsonModule -w & firebase serve --only functions"
@@ -19,7 +19,7 @@
     "@google-cloud/bigquery": "^4.7.0",
     "@rabbotio/fetcher": "^1.5.0",
     "firebase-admin": "^8.10.0",
-    "firebase-functions": "^3.4.0",
+    "firebase-functions": "^3.6.0",
     "md5": "^2.2.1",
     "node-fetch": "^2.6.0"
   },
@@ -27,7 +27,7 @@
     "@types/md5": "^2.1.33",
     "@types/node-fetch": "^2.5.5",
     "firebase-functions-test": "^0.2.0",
-    "tslint": "^6.1.0",
+    "tslint": "^6.1.1",
     "typescript": "^3.8.3"
   },
   "private": true

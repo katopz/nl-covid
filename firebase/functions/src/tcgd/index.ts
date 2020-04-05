@@ -1,4 +1,3 @@
-import * as functions from 'firebase-functions'
 import * as bigquery from '@google-cloud/bigquery'
 import * as admin from 'firebase-admin'
 import md5 from 'md5'
@@ -34,7 +33,7 @@ const ingest = async (url: string) => {
 
   // Github → Cloud Function : Fetch file from github with ETag
   // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag
-  let options = etag ? { headers: { 'If-None-Match': etag } } : {}
+  const options = etag ? { headers: { 'If-None-Match': etag } } : {}
   const fetch_res = await fetch(url, options)
 
   // Not modified
@@ -135,23 +134,10 @@ const ingest = async (url: string) => {
 }
 
 // Manually call
-const _ingestAll = async () => {
+export const _ingestAll = async () => {
   console.log(' * Ingest:', LAB_URL)
   await ingest(LAB_URL)
   console.log(' * Ingest:', THSTAT_URL)
   await ingest(THSTAT_URL)
   console.log(' ! Done TCGD')
 }
-
-_ingestAll()
-
-// Cloud Schedule → Cloud Function : Call ingest daily
-// https://firebase.google.com/docs/functions/schedule-functions
-
-export const ingestAll = functions
-  .region(REGION)
-  .pubsub.schedule('every 24 hours')
-  .onRun(async () => {
-    console.log('This will be run every 24 hours!')
-    return _ingestAll()
-  })
