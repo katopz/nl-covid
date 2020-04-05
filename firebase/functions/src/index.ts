@@ -10,11 +10,11 @@ export const REGION = 'asia-northeast1'
 
 export const ingest = functions
   .region(REGION)
-  .pubsub.schedule('every monday 15:00')
+  .pubsub.schedule('every day 15:00')
   .timeZone('Asia/Bangkok')
   .onRun(async () => {
-    console.info(' * Ingest start at : ', new Date())
+    console.info(' * Ingest begin at : ', new Date())
     await _pullData().catch(error => console.error(error.response ? JSON.stringify(error.response) : error))
     await _ingestAll().catch(error => console.error(error.response ? JSON.stringify(error.response) : error))
-    console.info(' * Ingest done at : ', new Date())
+    console.info(' * Ingest end at : ', new Date())
   })
