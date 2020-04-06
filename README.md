@@ -7,11 +7,25 @@
 - To provide, collect and reflect about `covid-19` in Data Science perspective.
 - This is a `POC` for learning purpose, not ready for production. Please see `TODO` list below.
 
-![image](https://user-images.githubusercontent.com/97060/76939014-38296000-692a-11ea-8e1a-aa741eccdc92.png)
+## Data Studio
+
+- https://datastudio.google.com/s/o8bfzfFBkek
+  ![image](https://user-images.githubusercontent.com/97060/78535721-d5cfcb00-7816-11ea-958f-99d9938b5cfc.png)
+
+### How to
+
+1. Go to `Data Studio` select JSON connector 👉 https://datastudio.google.com/data?search=json
+
+2. Add data source from 👉 https://covid19.th-stat.com/api/open/timeline
+
+3. Choose metric, dimension
+
+4. Share report 👉 https://datastudio.google.com/s/o8bfzfFBkek
 
 ## BigQuery
 
 - https://console.cloud.google.com/bigquery?project=nl-covid&p=nl-covid&d=covid19&page=dataset
+  ![image](https://user-images.githubusercontent.com/97060/76939014-38296000-692a-11ea-8e1a-aa741eccdc92.png)
 
 ```SQL
 SELECT
@@ -35,10 +49,11 @@ npm run dev
 ## TODO
 
 - [x] Merge data instead of manually delete.
-- [ ] Present to `Data Studio`.
+- [x] Present to `Data Studio`.
+- [x] Auto fetch data with `Cloud Schedule` via Cloud Function.
 - [ ] Made prediction with `BigQuery ML`.
-- [ ] Auto fetch data with `Cloud Schedule`.
 
 ## Credit
 
 - https://covid19.workpointnews.com/
+-
