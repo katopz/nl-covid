@@ -13,10 +13,7 @@ export const _pullData = async () => {
 
   const isTableExist = async (datasetId: string, tableId: string) => {
     // Exist?
-    const [tableExists] = await bq
-      .dataset(datasetId)
-      .table(tableId)
-      .exists()
+    const [tableExists] = await bq.dataset(datasetId).table(tableId).exists()
 
     if (tableExists) {
       // console.log(`Table ${tableId} already existed.`)
@@ -29,17 +26,14 @@ export const _pullData = async () => {
 
   const createTodayTable = async (datasetId: string, tableId: string) => {
     // Daily
-    const today_tableId = `${tableId}_${new Date()
-      .toISOString()
-      .split('T')[0]
-      .split('-')
-      .join('')}`
+    const today_tableId = `${tableId}_${new Date().toISOString().split('T')[0].split('-').join('')}`
 
     if (await isTableExist(datasetId, today_tableId)) {
       console.error(`------------------------------------------`)
       console.error(`Please empty ${datasetId}.${today_tableId}`)
       console.error(`------------------------------------------`)
 
+      // return { today_tableId }
       throw new Error(`${datasetId}.${today_tableId} must be empty`)
     }
 
@@ -94,14 +88,19 @@ export const _pullData = async () => {
           }
         }),
       cases: () =>
-        json.map((e: any) => ({
-          // Use "id" as insertId
-          insertId: e.id,
-          json: {
-            ...e,
-            references: e.references ? e.references.map((ee: string) => ({ url: ee })) : []
+        json.records.map((e: any) => {
+          // Correct int
+          e.age = Math.round(e.age)
+
+          return {
+            // Use "id" as insertId
+            insertId: e.id,
+            json: {
+              ...e
+              // references: e.references ? e.references.map((ee: string) => ({ url: ee })) : []
+            }
           }
-        }))
+        })
     }
 
     const rows = _rows[type]()
@@ -113,10 +112,7 @@ export const _pullData = async () => {
     }
 
     // Insert data into a table
-    await bq
-      .dataset(datasetId)
-      .table(tableId)
-      .insert(rows, options)
+    await bq.dataset(datasetId).table(tableId).insert(rows, options)
 
     console.log(` ^ Inserted ${rows.length} rows`)
 
@@ -131,9 +127,9 @@ export const _pullData = async () => {
     // console.log(`Will update ${type}.`)
 
     return ({
-      trend: TREND_FIELDS.map(e => `${e}=S.${e}`),
-      world: WORLD_FIELDS.map(e => `${e}=S.${e}`),
-      cases: CASES_FIELDS.map(e => `${e}=S.${e}`)
+      trend: TREND_FIELDS.map((e) => `${e}=S.${e}`),
+      world: WORLD_FIELDS.map((e) => `${e}=S.${e}`),
+      cases: CASES_FIELDS.map((e) => `${e}=S.${e}`)
     } as any)[type]
   }
 
@@ -141,7 +137,7 @@ export const _pullData = async () => {
     // console.log(`Will insert ${type}.`)
 
     const getINSERT = (target: string[]) => `INSERT (${target.join(',')})`
-    const getVALUE = (target: string[]) => 'VALUES (' + target.map(e => `S.${e}`).join(',') + ')'
+    const getVALUE = (target: string[]) => 'VALUES (' + target.map((e) => `S.${e}`).join(',') + ')'
 
     return ({
       trend: getINSERT(TREND_FIELDS) + ' ' + getVALUE(TREND_FIELDS),
@@ -183,38 +179,42 @@ export const _pullData = async () => {
     await job.getQueryResults()
   }
 
-  const start = async (tableId: string) => {
+  const start = async (path: string) => {
     console.log(`---------------------`)
+    const paths = path.split('/')
+    const tableId = path.includes('/') ? paths[1] : path
     console.log(` * Start : ${tableId}`)
 
     // Fetch
     const datasetId = 'covid19'
-    const COVID_URL = `https://covid19-cdn.workpointnews.com/api/${tableId}.json`
+    const COVID_URL = `https://covid19-cdn.workpointnews.com/api/${path}.json`
+    console.log(` * fetch : ${COVID_URL}`)
     const { getJSON } = require('@rabbotio/fetcher')
     const json = await getJSON(COVID_URL).catch(console.error)
     if (!json) throw new Error('No data')
 
     // Create table if not exists
-    const { tableId: old_tableId } = await createTable(datasetId, tableId, tableId).catch(console.error)
+    const { tableId: old_tableId } = await createTable(datasetId, tableId, tableId)
     old_tableId && console.log(` * Created : ${old_tableId}`)
 
-    const { today_tableId } = await createTodayTable(datasetId, tableId).catch(console.error)
+    const { today_tableId } = await createTodayTable(datasetId, tableId)
     // test // const today_tableId = `${tableId}_20200321`
     if (today_tableId) {
-      await insertRowsAsStreamWithInsertId(datasetId, today_tableId, json).catch(error => {
+      await insertRowsAsStreamWithInsertId(datasetId, today_tableId, json).catch((error) => {
         // Break if error
+        // console.log(error.errors[0].errors[0])
         console.error(error)
         throw error
       })
-      await upsertTable(datasetId, today_tableId, tableId).catch(console.error)
+      await upsertTable(datasetId, today_tableId, tableId)
     }
   }
 
   // Go!
   // trend, world, cases
   console.log(' * Ingest: workpoint')
-  await start('trend')
-  await start('world')
-  await start('cases')
+  await start('trend').catch(console.error)
+  await start('world').catch(console.error)
+  await start('v2/cases').catch(console.error)
   console.log(' ! Done : workpoint')
 }

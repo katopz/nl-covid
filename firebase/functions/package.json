@@ -9,7 +9,7 @@
     "deploy": "npm run build && firebase deploy --only functions",
     "logs": "firebase functions:log",
     "kill": "lsof -t -i tcp:8080 | xargs kill",
-    "dev": "npm run kill && tsc --resolveJsonModule -w & firebase serve --only functions"
+    "dev": "npm run kill && tsc --resolveJsonModule -w"
   },
   "engines": {
     "node": "8"
@@ -24,9 +24,9 @@
     "node-fetch": "^2.6.0"
   },
   "devDependencies": {
-    "@types/md5": "^2.1.33",
-    "@types/node-fetch": "^2.5.5",
-    "firebase-functions-test": "^0.2.0",
+    "@types/md5": "^2.2.0",
+    "@types/node-fetch": "^2.5.6",
+    "firebase-functions-test": "^0.2.1",
     "tslint": "^6.1.1",
     "typescript": "^3.8.3"
   },

@@ -43,6 +43,7 @@ ORDER BY
 cd firebase/functions
 # See : https://cloud.google.com/docs/authentication/getting-started
 export GOOGLE_APPLICATION_CREDENTIALS=.credential.json
+npm run serve
 npm run dev
 ```
 
@@ -56,4 +57,4 @@ npm run dev
 ## Credit
 
 - https://covid19.workpointnews.com/
--
+- https://github.com/COVID19-TCDG/datasets

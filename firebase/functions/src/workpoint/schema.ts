@@ -38,7 +38,7 @@ export const bigQueryField = (
 
 export const TREND_FIELDS = ['date', 'deaths', 'confirmed', 'recovered']
 export const WORLD_FIELDS = ['name', 'alpha2', 'alpha3', 'numeric', 'deaths', 'confirmed', 'recovered', 'travel']
-export const CASES_FIELDS = [
+export const DEPRECATED_CASES_FIELDS = [
   'id',
   'number',
   'age',
@@ -56,6 +56,21 @@ export const CASES_FIELDS = [
   'detectedAt',
   'treatAt',
   'references'
+]
+export const CASES_FIELDS = [
+  'id',
+  'number',
+  'gender',
+  'age',
+  'ageMonth',
+  'job',
+  'statementDate',
+  'nationality',
+  'nationalityAlpha2',
+  'detectedDate',
+  'province',
+  'district',
+  'risk'
 ]
 
 export const schema: any = {
@@ -75,34 +90,39 @@ export const schema: any = {
     bigQueryField('recovered', 'INTEGER', 'NULLABLE'),
     bigQueryField('travel', 'STRING', 'NULLABLE')
   ],
+
   cases: [
     bigQueryField('id', 'STRING', 'REQUIRED'),
     bigQueryField('number', 'INTEGER', 'NULLABLE'),
+    bigQueryField('gender', 'STRING', 'NULLABLE'),
     bigQueryField('age', 'INTEGER', 'NULLABLE'),
     bigQueryField('ageMonth', 'INTEGER', 'NULLABLE'),
-    bigQueryField('gender', 'STRING', 'NULLABLE'),
     bigQueryField('job', 'STRING', 'NULLABLE'),
-    bigQueryField('origin', 'STRING', 'NULLABLE'),
-    bigQueryField('type', 'STRING', 'NULLABLE'),
-    bigQueryField('meta', 'STRING', 'NULLABLE'),
-    bigQueryField('status', 'STRING', 'NULLABLE'),
+    // bigQueryField('origin', 'STRING', 'NULLABLE'),
+    // bigQueryField('type', 'STRING', 'NULLABLE'),
+    // bigQueryField('meta', 'STRING', 'NULLABLE'),
+    // bigQueryField('status', 'STRING', 'NULLABLE'),
     bigQueryField('statementDate', 'DATE', 'NULLABLE'),
-    bigQueryField('recoveredDate', 'DATE', 'NULLABLE'),
+    // bigQueryField('recoveredDate', 'DATE', 'NULLABLE'),
     bigQueryField('nationality', 'STRING', 'NULLABLE'),
     bigQueryField('nationalityAlpha2', 'STRING', 'NULLABLE'),
-    bigQueryField('detectedAt', 'STRING', 'NULLABLE'),
-    bigQueryField('treatAt', 'STRING', 'NULLABLE'),
-    {
-      name: 'references',
-      type: 'RECORD',
-      mode: 'REPEATED',
-      fields: [
-        {
-          name: 'url',
-          type: 'STRING',
-          mode: 'NULLABLE'
-        }
-      ]
-    }
+    // bigQueryField('detectedAt', 'STRING', 'NULLABLE'),
+    bigQueryField('detectedDate', 'DATE', 'NULLABLE'),
+    // bigQueryField('treatAt', 'STRING', 'NULLABLE'),
+    bigQueryField('province', 'STRING', 'NULLABLE'),
+    bigQueryField('district', 'STRING', 'NULLABLE'),
+    bigQueryField('risk', 'STRING', 'NULLABLE')
+    // {
+    //   name: 'references',
+    //   type: 'RECORD',
+    //   mode: 'REPEATED',
+    //   fields: [
+    //     {
+    //       name: 'url',
+    //       type: 'STRING',
+    //       mode: 'NULLABLE'
+    //     }
+    //   ]
+    // }
   ]
 }

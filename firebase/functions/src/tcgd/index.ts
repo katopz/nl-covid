@@ -20,11 +20,7 @@ const THSTAT_URL = 'https://github.com/COVID19-TCDG/datasets/raw/master/datasets
 const ingest = async (url: string) => {
   // Read ETag from Firebase
   // https://firebase.google.com/docs/firestore/query-data/get-data
-  const get_res = await admin
-    .firestore()
-    .collection('covid19')
-    .doc(md5(url))
-    .get()
+  const get_res = await admin.firestore().collection('covid19').doc(md5(url)).get()
 
   const get_resData = get_res.data() as any
   const etag = get_resData?.etag
@@ -49,30 +45,18 @@ const ingest = async (url: string) => {
 
   // Cloud Function → Firestore : Save url/e-tag to Firestore
   // https://firebase.google.com/docs/firestore/manage-data/add-data
-  await admin
-    .firestore()
-    .collection('covid19')
-    .doc(md5(url))
-    .set({ etag: new_etag })
+  await admin.firestore().collection('covid19').doc(md5(url)).set({ etag: new_etag })
 
   // --------------------------------------------------------------------------------------------
 
   // Cloud Function → Cloud Storage : Upload file to GCS
   // https://firebase.google.com/docs/storage/admin/start
   // https://googleapis.dev/nodejs/storage/latest/File.html#createWriteStream
-  const csv_filename = url
-    .split('/')
-    .pop()
-    ?.split('.')
-    .shift()
+  const csv_filename = url.split('/').pop()?.split('.').shift()
 
   if (!csv_filename) throw new Error(`Wrong csv filename: ${csv_filename}`)
 
-  const daily_filename = `${csv_filename}${new Date()
-    .toISOString()
-    .split('T')[0]
-    .split('-')
-    .join('')}`
+  const daily_filename = `${csv_filename}${new Date().toISOString().split('T')[0].split('-').join('')}`
   const filetype = 'csv'
   const full_filename = `${daily_filename}.${filetype}`
 
@@ -120,10 +104,7 @@ const ingest = async (url: string) => {
 
   // Load data from a Google Cloud Storage file into the table
   const bq = new bigquery.BigQuery()
-  const [job] = await bq
-    .dataset(datasetId)
-    .table(tableId)
-    .load(bucket.file(full_filename), metadata)
+  const [job] = await bq.dataset(datasetId).table(tableId).load(bucket.file(full_filename), metadata)
 
   // load() waits for the job to finish
   // console.log(`Job ${job.id} completed.`)
