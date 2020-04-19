@@ -4,6 +4,8 @@ import md5 from 'md5'
 
 import { schema, TREND_FIELDS, WORLD_FIELDS, CASES_FIELDS } from './schema'
 
+const isDryRun = true
+
 export const REGION = 'asia-northeast1'
 export const BQ_LOCATION = 'asia-southeast1'
 export const onRequest = functions.region(REGION).https.onRequest
@@ -33,7 +35,7 @@ export const _pullData = async () => {
       console.error(`Please empty ${datasetId}.${today_tableId}`)
       console.error(`------------------------------------------`)
 
-      // return { today_tableId }
+      if (isDryRun) return { today_tableId }
       throw new Error(`${datasetId}.${today_tableId} must be empty`)
     }
 
@@ -81,6 +83,10 @@ export const _pullData = async () => {
         json.statistics.map((e: any) => {
           // How about us now T-T
           if (e.name === 'Thailand') console.log(e)
+
+          // Ignore 'foreignImmigration', TODO : add foreignImmigration
+          delete e.foreignImmigration
+
           return {
             // Use value "name" as insertId
             insertId: md5(e.name),
@@ -202,8 +208,7 @@ export const _pullData = async () => {
     if (today_tableId) {
       await insertRowsAsStreamWithInsertId(datasetId, today_tableId, json).catch((error) => {
         // Break if error
-        // console.log(error.errors[0].errors[0])
-        console.error(error)
+        console.log(error.errors[0].errors[0])
         throw error
       })
       await upsertTable(datasetId, today_tableId, tableId)
