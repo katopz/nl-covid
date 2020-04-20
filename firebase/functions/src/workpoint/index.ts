@@ -4,7 +4,7 @@ import md5 from 'md5'
 
 import { schema, TREND_FIELDS, WORLD_FIELDS, CASES_FIELDS } from './schema'
 
-const isDryRun = true
+const isDryRun = false
 
 export const REGION = 'asia-northeast1'
 export const BQ_LOCATION = 'asia-southeast1'
