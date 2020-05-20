@@ -183,11 +183,11 @@ const _ingest_csv = async (step: number) => {
   // --------------------------------------------------------------------------------------------
 
   const full_filename = `${folder}/${cursor}-${next_cursor - 1}.csv`
-  const result = await saveToBucket(full_filename, csv_all_data)
+  await saveToBucket(full_filename, csv_all_data)
 
   // --------------------------------------------------------------------------------------------
 
-  console.log(' ! done : ', result)
+  console.log(' ! done : ', full_filename)
 
   batch.set(metaRef, { cursor: next_cursor }, { merge: true })
   await batch.commit()
