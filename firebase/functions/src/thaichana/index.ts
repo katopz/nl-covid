@@ -25,10 +25,13 @@ const pull = async (cursor: number) => {
 
   const response = await fetch(shop_url, { method: 'GET' })
   const _json = await response.json()
-  const { shopName, shopId, appId } = _json
+  const { shopName, shopId, appId, status } = _json
 
   // get shop detail
   console.log('shopName:', shopName)
+  if (status === 'DELETED') return _json
+
+  if (!shopName) throw new Error('NOT_FOUND : ' + shopId)
   const body = {
     nameQuery: shopName,
     location: { latitude: 13.778944, longitude: 100.64363519999999 },
@@ -76,8 +79,7 @@ const pull = async (cursor: number) => {
   const { shops } = search_response_json
 
   // Find shop
-  let shop
-  shop = shops.filter((e: any) => e.shopName === shopName)[0]
+  let shop = shops.filter((e: any) => e.shopName === shopName)[0]
 
   if (shop) {
     console.log('FOUND shopId: ', shop.id)
